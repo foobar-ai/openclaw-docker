@@ -39,14 +39,13 @@ RUN npm install -g playwright-extra puppeteer-extra-plugin-stealth
 RUN npm install -g @steipete/bird
 
 # 创建配置目录并设置权限
-RUN mkdir -p /home/node/.openclaw/workspace && \
-    chown -R node:node /home/node
-    
-# zeabur auth fix Add this line before your CMD or ENTRYPOINT  
-RUN mkdir -p /home/node/.openclaw/agents/main/sessions && \  
-    chown -R node:node /home/node/.openclaw && \  
-    chmod -R 755 /home/node/.openclaw  
-
+# 预创建 agents, extensions, sessions 等目录，避免运行时因权限问题创建失败
+RUN mkdir -p /home/node/.openclaw/workspace \
+             /home/node/.openclaw/agents \
+             /home/node/.openclaw/sessions \
+             /home/node/.openclaw/extensions \
+             /home/node/.openclaw/plugins && \
+    chown -R node:node /home/node/.openclaw
 
 # 切换到 node 用户安装插件
 USER node

@@ -37,6 +37,7 @@ OpenClaw 中国 IM 插件整合版 Docker 镜像，预装并配置了飞书、�
 
 ```bash
 docker pull justlikemaki/openclaw-docker-cn-im:latest
+docker pull chuck4j/openclaw:latest
 ```
 
 ---

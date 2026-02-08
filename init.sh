@@ -280,22 +280,7 @@ EOF
     # 关闭 entries 对象
     cat >> /home/node/.openclaw/openclaw.json <<EOF
     },
-    "installs": {
 EOF
-
-    # 添加飞书插件安装信息（如果提供了 APP_ID 和 APP_SECRET）
-    FIRST_INSTALL=true
-    if [ -n "$FEISHU_APP_ID" ] && [ -n "$FEISHU_APP_SECRET" ]; then
-        cat >> /home/node/.openclaw/openclaw.json <<EOF
-      "feishu": {
-        "source": "npm",
-        "spec": "@m1heng-clawd/feishu",
-        "installPath": "/home/node/.openclaw/extensions/feishu",
-        "installedAt": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
-      }
-EOF
-        FIRST_INSTALL=false
-    fi
 
     # 添加钉钉插件安装信息（如果提供了 CLIENT_ID 和 CLIENT_SECRET）
     if [ -n "$DINGTALK_CLIENT_ID" ] && [ -n "$DINGTALK_CLIENT_SECRET" ]; then

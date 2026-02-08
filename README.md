@@ -214,13 +214,69 @@ openclaw pairing approve telegram {token}
 
 并且需要重启 Docker 服务使配置生效。
 
+### Q: 同样的启动命令，为什么有人报错 `Permission denied`？
+
+这通常不是命令本身不稳定，而是**运行上下文变化**导致：宿主机挂载目录所有者（UID/GID）与容器内进程用户不一致。
+
+#### 为什么会“偶发”
+
+- 同样是 `docker compose up -d`，但目录来源不同：
+  - 你手动创建目录：可能是当前用户（如 `1000:1000`）
+  - Docker 自动创建或使用 sudo 创建：可能是 `root:root`（`0:0`）
+- 本镜像最终以 `node` 用户运行网关；若挂载目录归属不匹配，就可能无法写入。
+
+#### 快速排查
+
+```bash
+# 1) 看宿主机目录归属（Linux）
+ls -ln ~/.openclaw
+
+# 2) 看容器内运行用户
+docker run --rm justlikemaki/openclaw-docker-cn-im:latest id
+```
+
+若容器用户是 `uid=1000`，而宿主机目录是 `uid=0` 且权限不足，就会报错。
+
+#### 解决方案（推荐顺序）
+
+1. **宿主机修正目录所有权（最直接）**
+
+```bash
+sudo chown -R 1000:1000 ~/.openclaw
+```
+
+2. **显式指定容器运行用户（可选）**
+
+在 `.env` 中设置：
+
+```bash
+OPENCLAW_RUN_USER=1000:1000
+```
+
+然后重启：
+
+```bash
+docker compose up -d
+```
+
+3. **SELinux 场景（CentOS/RHEL/Fedora）**
+
+若权限看起来没问题但仍拒绝访问，请给挂载卷加 `:z` 或 `:Z` 标签。
+
+#### 本项目已做的稳态处理
+
+- [`docker-compose.yml`](docker-compose.yml) 新增可选 `user` 配置：`OPENCLAW_RUN_USER`（默认 `0:0`）
+- [`init.sh`](init.sh) 启动时会：
+  - 打印挂载目录当前 UID/GID 与目标 UID/GID
+  - 尝试自动修复 `/home/node/.openclaw` 权限
+  - 若仍不可写，输出明确的修复命令并失败退出，避免“有时成功有时报错”的隐性状态
 ---
 
 ## 注意事项
 
 1. 确保宿主机的 18789 和 18790 端口未被占用
 2. 配置文件中的敏感信息（如 API 密钥、令牌）应妥善保管
-3. 首次运行时会自动创建必要的目录和配置文件
+3. 首次运行时会自动创建必要的目录和配置文件，包括 `openclaw.json` 配置文件，已存在时不会覆盖
 4. 容器以 `node` 用户身份运行，确保挂载的卷有正确的权限
 5. IM 平台配置均为可选项，可根据实际需求选择性配置
 6. 使用 OpenAI 协议时，Base URL 需要包含 `/v1` 后缀

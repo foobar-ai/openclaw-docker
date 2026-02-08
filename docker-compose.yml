@@ -7,6 +7,9 @@ services:
       - SETUID
       - SETGID
       - DAC_OVERRIDE
+    # 可选：指定容器运行 UID:GID（例如 1000:1000）
+    # 默认保持 root 启动，以便 init.sh 自动修复挂载卷权限后再降权运行网关
+    user: ${OPENCLAW_RUN_USER:-0:0}
     environment:
       HOME: /home/node
       TERM: xterm-256color

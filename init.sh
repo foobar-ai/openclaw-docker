@@ -4,8 +4,37 @@ set -e
 
 echo "=== OpenClaw 初始化脚本 ==="
 
-# 创建必要的目录并确保权限正确
-mkdir -p /home/node/.openclaw/workspace
+OPENCLAW_HOME="/home/node/.openclaw"
+OPENCLAW_WORKSPACE="${WORKSPACE:-/home/node/.openclaw/workspace}"
+NODE_UID="$(id -u node)"
+NODE_GID="$(id -g node)"
+
+# 创建必要目录
+mkdir -p "$OPENCLAW_HOME" "$OPENCLAW_WORKSPACE"
+
+# 预检查挂载卷权限（避免同样命令偶发 Permission denied）
+if [ "$(id -u)" -eq 0 ]; then
+    CURRENT_OWNER="$(stat -c '%u:%g' "$OPENCLAW_HOME" 2>/dev/null || echo unknown:unknown)"
+    echo "挂载目录: $OPENCLAW_HOME"
+    echo "当前所有者(UID:GID): $CURRENT_OWNER"
+    echo "目标所有者(UID:GID): ${NODE_UID}:${NODE_GID}"
+
+    if [ "$CURRENT_OWNER" != "${NODE_UID}:${NODE_GID}" ]; then
+        echo "检测到宿主机挂载目录所有者与容器运行用户不一致，尝试自动修复..."
+        chown -R node:node "$OPENCLAW_HOME" || true
+    fi
+
+    # 再次验证写权限，失败则给出明确诊断
+    if ! gosu node test -w "$OPENCLAW_HOME"; then
+        echo "❌ 权限检查失败：node 用户无法写入 $OPENCLAW_HOME"
+        echo "请在宿主机执行（Linux）："
+        echo "  sudo chown -R ${NODE_UID}:${NODE_GID} <your-openclaw-data-dir>"
+        echo "或在启动时显式指定用户："
+        echo "  docker run --user \$(id -u):\$(id -g) ..."
+        echo "若宿主机启用了 SELinux，请在挂载卷后添加 :z 或 :Z"
+        exit 1
+    fi
+fi
 
 # 检查配置文件是否存在，如果不存在则生成
 if [ ! -f /home/node/.openclaw/openclaw.json ]; then
@@ -191,7 +220,11 @@ EOF
     "wecom": {
       "enabled": true,
       "token": "$WECOM_TOKEN",
-      "encodingAesKey": "$WECOM_ENCODING_AES_KEY"
+      "encodingAesKey": "$WECOM_ENCODING_AES_KEY",
+      "commands": {
+        "enabled": true,
+        "allowlist": ["/new", "/status", "/help", "/compact"]
+      }
     }
 EOF
     fi
@@ -271,7 +304,7 @@ EOF
             echo "," >> /home/node/.openclaw/openclaw.json
         fi
         cat >> /home/node/.openclaw/openclaw.json <<EOF
-      "openclaw-plugin-wecom": {
+      "wecom": {
         "enabled": true
       }
 EOF
@@ -321,10 +354,10 @@ EOF
             echo "," >> /home/node/.openclaw/openclaw.json
         fi
         cat >> /home/node/.openclaw/openclaw.json <<EOF
-      "openclaw-plugin-wecom": {
+      "wecom": {
         "source": "npm",
-        "spec": "https://github.com/sunnoy/openclaw-plugin-wecom.git",
-        "installPath": "/home/node/.openclaw/extensions/openclaw-plugin-wecom",
+        "spec": "@sunnoy/wecom",
+        "installPath": "/home/node/.openclaw/extensions/wecom",
         "installedAt": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
       }
 EOF
@@ -342,8 +375,10 @@ else
     echo "配置文件已存在，跳过生成"
 fi
 
-# 确保所有文件和目录的权限正确
-chown -R node:node /home/node/.openclaw
+# 确保所有文件和目录的权限正确（仅 root 可执行）
+if [ "$(id -u)" -eq 0 ]; then
+    chown -R node:node "$OPENCLAW_HOME" || true
+fi
 
 echo "=== 初始化完成 ==="
 echo "当前使用模型: default/$MODEL_ID"

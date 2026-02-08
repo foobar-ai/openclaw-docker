@@ -27,7 +27,7 @@ RUN apt-get update \
 RUN npm install -g npm@latest
 
 # 安装 OpenClaw 和 OpenCode AI
-RUN npm install -g openclaw@2026.2.3 opencode-ai@latest
+RUN npm install -g openclaw@2026.2.6-3 opencode-ai@latest
 
 # 安装 Playwright 和 Chromium
 RUN npm install -g playwright && npx playwright install chromium --with-deps
@@ -55,7 +55,7 @@ RUN cd /tmp && \
     timeout 300 openclaw plugins install . || true
 
 # 安装企业微信插件 - 使用 timeout 防止卡住，忽略错误继续构建
-RUN timeout 300 openclaw plugins install openclaw-plugin-wecom || true
+RUN timeout 300 openclaw plugins install @sunnoy/wecom || true
 
 # 切换回 root 用户继续后续操作
 USER root

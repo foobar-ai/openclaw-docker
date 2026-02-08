@@ -27,7 +27,7 @@ RUN apt-get update \
 RUN npm install -g npm@latest
 
 # 安装 OpenClaw 和 OpenCode AI
-RUN npm install -g openclaw@2026.2.6 opencode-ai@latest
+RUN npm install -g openclaw@2026.2.6-3 opencode-ai@latest
 
 # 安装 Playwright 和 Chromium
 RUN npm install -g playwright && npx playwright install chromium --with-deps

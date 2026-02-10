@@ -13,4 +13,6 @@ venv/
 generated/
 .opencode
 .env
+.serena
+
 

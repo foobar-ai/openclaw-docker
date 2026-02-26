@@ -250,7 +250,7 @@ def sync():
             control_ui['dangerouslyAllowHostHeaderOriginFallback'] = env_bool('OPENCLAW_CONTROLUI_ALLOW_HOST_HEADER_ORIGIN_FALLBACK', True)
             control_ui['allowedOrigins'] = env_origins(
                 'OPENCLAW_CONTROLUI_ALLOWED_ORIGINS',
-                f"http://127.0.0.1:{gw['port']}"
+                'http://127.0.0.1:' + str(gw['port'])
             )
 
             auth = ensure_path(gw, ['auth'])

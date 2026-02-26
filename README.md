@@ -44,14 +44,16 @@ docker pull chuck4j/openclaw:latest
 
 ## 快速开始
 
-### 1. 下载配置文件
+### 方式一：使用预构建镜像（推荐）
+
+#### 1. 下载配置文件
 
 ```bash
 wget https://raw.githubusercontent.com/justlovemaki/OpenClaw-Docker-CN-IM/main/docker-compose.yml
 wget https://raw.githubusercontent.com/justlovemaki/OpenClaw-Docker-CN-IM/main/.env.example
 ```
 
-### 2. 配置环境变量
+#### 2. 配置环境变量
 
 ```bash
 # 复制环境变量模板
@@ -71,27 +73,83 @@ nano .env
 
 > 💡 **提示**：IM 平台配置为可选项，可以先启动服务，后续再配置需要的平台。
 
-### 3. 启动服务
+#### 3. 启动服务
 
 ```bash
 docker-compose up -d
 ```
 
-### 4. 查看日志
+#### 4. 查看日志
 
 ```bash
 docker-compose logs -f
 ```
 
-### 5. 停止服务
+#### 5. 停止服务
 
 ```bash
 docker-compose down
 ```
 
-### 6. 进入容器
+#### 6. 进入容器
+
+如需进入容器进行调试或执行命令：
+
 ```bash
-docker compose exec openclaw-gateway /bin/bash
+# 使用 docker-compose 进入容器
+docker-compose exec openclaw-gateway /bin/bash
+
+# 或使用 docker 命令进入容器
+docker exec -it openclaw-gateway /bin/bash
+```
+
+进入容器后，可以执行以下常用命令：
+
+```bash
+# 查看 OpenClaw 版本
+openclaw --version
+
+# 查看配置文件
+cat ~/.openclaw/openclaw.json
+
+# 查看工作空间
+ls -la ~/.openclaw/workspace
+
+# 手动执行配对命令（如 Telegram）
+openclaw pairing approve telegram {token}
+```
+
+### 方式二：自行构建镜像
+
+如果您需要自定义镜像或进行开发调试，可以选择自行构建：
+
+#### 1. 克隆项目
+
+```bash
+git clone https://github.com/justlovemaki/OpenClaw-Docker-CN-IM.git
+cd OpenClaw-Docker-CN-IM
+```
+
+#### 2. 构建镜像
+
+```bash
+docker build -t justlikemaki/openclaw-docker-cn-im:latest .
+```
+
+#### 3. 配置环境变量
+
+```bash
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑配置文件（至少配置 AI 模型相关参数）
+nano .env
+```
+
+#### 4. 启动服务
+
+```bash
+docker-compose up -d
 ```
 
 ---
@@ -298,29 +356,46 @@ docker compose up -d
 4. 开启所需权限（见下方）⚠️ **重要**
 5. 配置事件订阅（见下方）⚠️ **重要**
 
-### 2. 必需权限
+### 2. 必需权限（租户级别）
 
 | 权限 | 范围 | 说明 |
 |------|------|------|
-| `contact:user.base:readonly` | 用户信息 | 获取用户基本信息（用于解析发送者姓名，避免群聊/私聊把不同人当成同一说话者） |
-| `contact:contact.base:readonly` | 通讯录 | 获取通讯录基本信息 |
-| `im:message` | 消息 | 发送和接收消息 |
+| `im:message` | 消息 | 发送和接收消息（核心权限） |
 | `im:message.p2p_msg:readonly` | 私聊 | 读取发给机器人的私聊消息 |
 | `im:message.group_at_msg:readonly` | 群聊 | 接收群内 @机器人 的消息 |
 | `im:message:send_as_bot` | 发送 | 以机器人身份发送消息 |
 | `im:resource` | 媒体 | 上传和下载图片/文件 |
+| `im:chat.members:bot_access` | 群成员 | 获取群成员信息 |
+| `im:chat.access_event.bot_p2p_chat:read` | 聊天事件 | 读取机器人单聊事件 |
 
-### 3. 可选权限
+### 3. 推荐权限（租户级别）
 
 | 权限 | 范围 | 说明 |
 |------|------|------|
-| `im:message.group_msg` | 群聊 | 读取所有群消息（敏感） |
+| `contact:user.employee_id:readonly` | 用户信息 | 获取用户员工 ID（用于用户识别） |
 | `im:message:readonly` | 读取 | 获取历史消息 |
-| `im:message:update` | 编辑 | 更新/编辑已发送消息 |
-| `im:message:recall` | 撤回 | 撤回已发送消息 |
-| `im:message.reactions:read` | 表情 | 查看消息表情回复 |
+| `application:application:self_manage` | 应用管理 | 应用自我管理 |
+| `application:bot.menu:write` | 机器人菜单 | 配置机器人菜单 |
+| `event:ip_list` | IP 列表 | 获取飞书服务器 IP 列表 |
 
-### 4. 事件订阅 ⚠️
+### 4. 可选权限（租户级别）
+
+| 权限 | 范围 | 说明 |
+|------|------|------|
+| `aily:file:read` | AI 文件读取 | 读取 AI 助手文件 |
+| `aily:file:write` | AI 文件写入 | 写入 AI 助手文件 |
+| `application:application.app_message_stats.overview:readonly` | 消息统计 | 查看应用消息统计概览 |
+| `corehr:file:download` | 人事文件 | 下载人事系统文件 |
+
+### 5. 用户级别权限（可选）
+
+| 权限 | 范围 | 说明 |
+|------|------|------|
+| `aily:file:read` | AI 文件读取 | 以用户身份读取 AI 助手文件 |
+| `aily:file:write` | AI 文件写入 | 以用户身份写入 AI 助手文件 |
+| `im:chat.access_event.bot_p2p_chat:read` | 聊天事件 | 以用户身份读取机器人单聊事件 |
+
+### 6. 事件订阅 ⚠️
 
 **这是最容易遗漏的配置！** 如果机器人能发消息但收不到消息，请检查此项。
 
@@ -338,7 +413,7 @@ docker compose up -d
 
 3. 确保事件订阅的权限已申请并通过审核
 
-### 5. 环境变量配置
+### 7. 环境变量配置
 
 在 `.env` 文件中添加：
 
@@ -347,7 +422,7 @@ FEISHU_APP_ID=your-app-id
 FEISHU_APP_SECRET=your-app-secret
 ```
 
-> 💡 **参考项目**：[clawdbot-feishu](https://github.com/m1heng/clawdbot-feishu) - 飞书机器人完整实现示例
+> 💡 **参考项目**：[clawdbot-feishu](https://github.com/openclaw/openclaw/blob/main/docs/channels/feishu.md) - 飞书机器人完整实现示例
 
 </details>
 
@@ -634,7 +709,7 @@ docker build -t justlikemaki/openclaw-docker-cn-im:latest .
 - `openclaw@latest` - OpenClaw 主程序
 - `opencode-ai@latest` - OpenCode AI
 - `playwright` - Playwright 浏览器自动化工具
-- `@m1heng-clawd/feishu` - 飞书插件（从 GitHub 安装）
+- `@openclaw/feishu` - 飞书插件
 - `clawdbot-channel-dingtalk` - 钉钉插件（从 GitHub 安装）
 - `qqbot` - QQ 机器人插件（先克隆到 `/tmp/qqbot`，然后从本地目录安装）
 - `openclaw-plugin-wecom` - 企业微信插件（从 GitHub 安装）

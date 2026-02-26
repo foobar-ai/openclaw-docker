@@ -20,14 +20,23 @@ RUN apt-get update \
     python3 \
     socat \
     tini \
+    unzip \
     websockify \
   && rm -rf /var/lib/apt/lists/*
 
 # 更新 npm 到最新版本
 RUN npm install -g npm@latest
 
+# 安装 bun
+RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+ENV BUN_INSTALL="/usr/local"
+ENV PATH="$BUN_INSTALL/bin:$PATH"
+
+# 安装 qmd
+RUN bun install -g https://github.com/tobi/qmd
+
 # 安装 OpenClaw 和 OpenCode AI
-RUN npm install -g openclaw@2026.2.6-3 opencode-ai@latest
+RUN npm install -g openclaw@2026.2.24 opencode-ai@latest
 
 # 安装 Playwright 和 Chromium
 RUN npm install -g playwright && npx playwright install chromium --with-deps
@@ -45,8 +54,16 @@ RUN mkdir -p /home/node/.openclaw/workspace && \
 # 切换到 node 用户安装插件
 USER node
 
+# OpenClaw已内置飞书插件 - 使用 timeout 防止卡住，忽略错误继续构建
+# RUN timeout 300 openclaw plugins install @m1heng-clawd/feishu || true
+
 # 安装钉钉插件 - 使用 timeout 防止卡住，忽略错误继续构建
-RUN timeout 300 openclaw plugins install https://github.com/soimy/clawdbot-channel-dingtalk.git || true
+RUN mkdir -p /home/node/.openclaw/extensions && \
+    cd /home/node/.openclaw/extensions && \
+    git clone https://github.com/soimy/openclaw-channel-dingtalk.git && \
+    cd openclaw-channel-dingtalk && \
+    npm install && \
+    timeout 300 openclaw plugins install -l . || true
 
 # 安装 QQ 机器人插件 - 使用 timeout 防止卡住，忽略错误继续构建
 RUN cd /tmp && \
@@ -60,8 +77,11 @@ RUN timeout 300 openclaw plugins install @sunnoy/wecom || true
 # 切换回 root 用户继续后续操作
 USER root
 
+# 如果存在，删除飞书插件目录（OpenClaw 已内置）
+RUN rm -rf /home/node/.openclaw/extensions/feishu
+
 # 确保 extensions 目录权限正确（排除 node_modules 以加快构建速度）
-RUN find /home/node/.openclaw/extensions -type d -name node_modules -prune -o -exec chown node:node {} +
+RUN if [ -d /home/node/.openclaw/extensions ]; then find /home/node/.openclaw/extensions -type d -name node_modules -prune -o -exec chown node:node {} +; fi
 
 # 复制初始化脚本
 COPY ./init.sh /usr/local/bin/init.sh
@@ -69,7 +89,8 @@ RUN chmod +x /usr/local/bin/init.sh
 
 # 设置基础环境变量
 ENV HOME=/home/node \
-    TERM=xterm-256color
+    TERM=xterm-256color \
+    NODE_PATH=/usr/local/lib/node_modules
 
 # 暴露端口
 EXPOSE 18789 18790

@@ -65,6 +65,22 @@ sync_config_with_env() {
   "messages": { "ackReactionScope": "group-mentions", "tts": { "edge": { "voice": "zh-CN-XiaoxiaoNeural" } } },
   "commands": { "native": "auto", "nativeSkills": "auto" },
   "channels": {},
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "allowInsecureAuth": true,
+      "enabled": true,
+      "dangerouslyAllowHostHeaderOriginFallback": true,
+      "allowedOrigins": [
+        "http://127.0.0.1:18789"
+      ]
+    },
+    "auth": {
+      "mode": "token"
+    }
+  },
   "plugins": { "entries": {}, "installs": {} },
     "memory": {
       "backend": "qmd",
@@ -214,7 +230,16 @@ def sync():
             gw['port'] = int(env.get('OPENCLAW_GATEWAY_PORT') or 18789)
             gw['bind'] = env.get('OPENCLAW_GATEWAY_BIND') or '0.0.0.0'
             gw['mode'] = 'local'
-            ensure_path(gw, ['auth'])['token'] = env['OPENCLAW_GATEWAY_TOKEN']
+
+            control_ui = ensure_path(gw, ['controlUi'])
+            control_ui['allowInsecureAuth'] = True
+            control_ui['enabled'] = True
+            control_ui['dangerouslyAllowHostHeaderOriginFallback'] = True
+            control_ui['allowedOrigins'] = [f"http://127.0.0.1:{gw['port']}"]
+
+            auth = ensure_path(gw, ['auth'])
+            auth['mode'] = 'token'
+            auth['token'] = env['OPENCLAW_GATEWAY_TOKEN']
             print('✅ Gateway 同步完成')
 
         # 保存并更新时间戳

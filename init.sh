@@ -111,13 +111,26 @@ def sync():
             config = json.load(f)
         
         env = os.environ
-        
+
         def ensure_path(cfg, keys):
             curr = cfg
             for k in keys:
                 if k not in curr: curr[k] = {}
                 curr = curr[k]
             return curr
+
+        def env_bool(name, default):
+            raw = env.get(name)
+            if raw is None or str(raw).strip() == '':
+                return default
+            return str(raw).strip().lower() in ('1', 'true', 'yes', 'on')
+
+        def env_origins(name, default_origin):
+            raw = env.get(name)
+            if raw is None or str(raw).strip() == '':
+                return [default_origin]
+            items = [x.strip() for x in str(raw).split(',') if x.strip()]
+            return items if items else [default_origin]
 
         # --- 0. 飞书旧版本格式迁移 ---
         feishu_raw = config.get('channels', {}).get('feishu', {})
@@ -232,10 +245,13 @@ def sync():
             gw['mode'] = 'local'
 
             control_ui = ensure_path(gw, ['controlUi'])
-            control_ui['allowInsecureAuth'] = True
-            control_ui['enabled'] = True
-            control_ui['dangerouslyAllowHostHeaderOriginFallback'] = True
-            control_ui['allowedOrigins'] = [f"http://127.0.0.1:{gw['port']}"]
+            control_ui['allowInsecureAuth'] = env_bool('OPENCLAW_CONTROLUI_ALLOW_INSECURE_AUTH', True)
+            control_ui['enabled'] = env_bool('OPENCLAW_CONTROLUI_ENABLED', True)
+            control_ui['dangerouslyAllowHostHeaderOriginFallback'] = env_bool('OPENCLAW_CONTROLUI_ALLOW_HOST_HEADER_ORIGIN_FALLBACK', True)
+            control_ui['allowedOrigins'] = env_origins(
+                'OPENCLAW_CONTROLUI_ALLOWED_ORIGINS',
+                f"http://127.0.0.1:{gw['port']}"
+            )
 
             auth = ensure_path(gw, ['auth'])
             auth['mode'] = 'token'

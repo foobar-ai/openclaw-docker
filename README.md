@@ -213,6 +213,15 @@ MAX_TOKENS=8192
 | `OPENCLAW_GATEWAY_PORT` | Gateway 端口 | `18789` |
 | `OPENCLAW_BRIDGE_PORT` | Bridge 端口 | `18790` |
 
+### Gateway Control UI 配置
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `OPENCLAW_CONTROLUI_ALLOW_INSECURE_AUTH` | 对应 `gateway.controlUi.allowInsecureAuth` | `true` |
+| `OPENCLAW_CONTROLUI_ENABLED` | 对应 `gateway.controlUi.enabled` | `true` |
+| `OPENCLAW_CONTROLUI_ALLOW_HOST_HEADER_ORIGIN_FALLBACK` | 对应 `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback` | `true` |
+| `OPENCLAW_CONTROLUI_ALLOWED_ORIGINS` | 对应 `gateway.controlUi.allowedOrigins`，多个来源用英文逗号分隔 | 空（自动使用 `http://127.0.0.1:${OPENCLAW_GATEWAY_PORT}`） |
+
 ### 工作空间配置
 
 | 参数 | 说明 | 默认值 |
@@ -613,6 +622,10 @@ docker run -d \
   -e OPENCLAW_GATEWAY_TOKEN=123456 \
   -e OPENCLAW_GATEWAY_BIND=lan \
   -e OPENCLAW_GATEWAY_PORT=18789 \
+  -e OPENCLAW_CONTROLUI_ALLOW_INSECURE_AUTH=true \
+  -e OPENCLAW_CONTROLUI_ENABLED=true \
+  -e OPENCLAW_CONTROLUI_ALLOW_HOST_HEADER_ORIGIN_FALLBACK=true \
+  -e OPENCLAW_CONTROLUI_ALLOWED_ORIGINS=http://127.0.0.1:18789 \
   -v ~/.openclaw:/home/node/.openclaw \
   -v ~/.openclaw/workspace:/home/node/.openclaw/workspace \
   -p 18789:18789 \
